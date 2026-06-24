@@ -1,0 +1,6 @@
+{
+  "name": "HireMe @ ISUFST_SEC",
+  "description": "Exclusive, campus-centric job matching and hiring platform for the ISUFST_SEC student and faculty community, powered by a Gemini AI skill-matching engine.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
