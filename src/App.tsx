@@ -46,6 +46,7 @@ import {
   Application
 } from './types';
 import { RoleSwitcher } from './components/RoleSwitcher';
+import { PhoneSimulator } from './components/PhoneSimulator';
 
 export default function App() {
   // Global application states
@@ -255,6 +256,30 @@ export default function App() {
     }
   };
 
+  // Submit profile registration request to the backend
+  const handleRegisterUser = async (formData: any) => {
+    try {
+      const res = await fetch('/api/users/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setCurrentUser(data.user);
+        setAllUsers(data.allUsers);
+        showAlert(`Profile submitted successfully! Current state: PENDING ADMIN VETTING.`, 'success');
+        loadData(true);
+      } else {
+        const errData = await res.json();
+        throw new Error(errData.error || 'Failed to submit profile.');
+      }
+    } catch (err: any) {
+      showAlert(err.message || 'Error during profile registration.', 'error');
+      throw err;
+    }
+  };
+
   // Admin approves/rejects registered user in vetting pipeline
   const handleVerifyUser = async (userId: string, status: 'approved' | 'rejected') => {
     try {
@@ -389,11 +414,54 @@ export default function App() {
         </div>
       )}
 
-      {/* Primary Flex Layout containing Sidebar & Main Space */}
-      <div className="flex flex-1 relative z-10 min-h-screen">
-        
-        {/* Sidebar Nav (Geometric Balance Theme Style) */}
-        <aside className="w-72 bg-slate-900 text-slate-300 flex flex-col border-r border-slate-800 shrink-0">
+      {currentUser.role === UserRole.STUDENT || currentUser.role === UserRole.FACULTY ? (
+        /* MOBILE VIEW SIMULATION FOR STUDENTS & FACULTY */
+        <div className="flex flex-col flex-1 relative z-10 min-h-screen">
+          {/* Simulation Global Header Bar */}
+          <header className="h-20 bg-slate-900 border-b border-slate-800 px-8 flex items-center justify-between shadow-md text-white sticky top-0 z-20 shrink-0">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-sky-500 rounded-sm flex items-center justify-center font-bold text-slate-950 italic font-display">HM</div>
+              <div>
+                <h1 className="text-base font-bold text-white font-display">HireMe Intranet Gateway</h1>
+                <p className="text-[10px] text-sky-400 font-mono">Evaluating Mobile-only standard client architecture</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4">
+              <div className="text-right hidden sm:block">
+                <p className="text-[10px] text-slate-400 uppercase tracking-widest font-mono font-bold">Simulator Controls</p>
+                <p className="text-xs text-slate-300">Switch personas to try Admin approvals or other roles:</p>
+              </div>
+              <RoleSwitcher
+                allUsers={allUsers}
+                currentUser={currentUser}
+                onSwitchUser={handleSwitchUser}
+              />
+            </div>
+          </header>
+
+          <div className="flex-1 flex items-center justify-center bg-slate-100/40">
+            <PhoneSimulator
+              currentUser={currentUser}
+              allUsers={allUsers}
+              jobs={jobs}
+              isApplying={isApplying}
+              onApply={async (jobId) => {
+                await handleApply(jobId);
+              }}
+              onRegister={handleRegisterUser}
+              onSwitchUser={handleSwitchUser}
+              config={config}
+              onRefresh={() => loadData(true)}
+            />
+          </div>
+        </div>
+      ) : (
+        /* DESKTOP VIEW FOR ADMINS & SUPER ADMINS */
+        <div className="flex flex-1 relative z-10 min-h-screen">
+          
+          {/* Sidebar Nav (Geometric Balance Theme Style) */}
+          <aside className="w-72 bg-slate-900 text-slate-300 flex flex-col border-r border-slate-800 shrink-0">
           <div className="p-6 flex items-center gap-3 border-b border-slate-800/80">
             <div className="w-9 h-9 bg-sky-500 rounded-sm flex items-center justify-center font-bold text-slate-950 italic font-display shadow-md">HM</div>
             <div className="flex flex-col">
@@ -1308,6 +1376,7 @@ export default function App() {
           </footer>
         </main>
       </div>
+      )}
 
       {/* MODAL: Faculty Post Job Placement */}
       {showCreateJobModal && (

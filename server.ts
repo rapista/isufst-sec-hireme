@@ -427,6 +427,53 @@ async function startServer() {
     res.json(users);
   });
 
+  app.post("/api/users/register", (req, res) => {
+    const { name, email, role, department, gpa, bio, skills, courses, idCardUrl, availability } = req.body;
+    if (!name || !email || !role || !department) {
+      return res.status(400).json({ error: "Missing required profile fields." });
+    }
+
+    const isStudent = role === UserRole.STUDENT;
+    const isFaculty = role === UserRole.FACULTY;
+
+    // Create registration profile with 'pending' approval
+    const newUser: UserProfile = {
+      id: `${isStudent ? 'std' : isFaculty ? 'fac' : 'usr'}-${Date.now()}`,
+      name,
+      email,
+      role: role as UserRole,
+      avatarUrl: `https://images.unsplash.com/photo-${1500000000000 + Math.floor(Math.random() * 1000000)}?w=150`, // Random nice avatar
+      department,
+      verifiedStatus: isStudent ? 'pending' : 'approved', // Only student registrations start as pending vetting by default
+      idCardUrl: idCardUrl || `ISUFST-${isStudent ? 'STUDENT' : 'FACULTY'}-2026-${Math.floor(1000 + Math.random() * 9000)}`,
+      registrationDate: new Date().toISOString().split('T')[0],
+      gpa: isStudent ? (gpa ? Number(gpa) : 1.75) : undefined,
+      courses: courses || [],
+      certificates: [],
+      skills: Array.isArray(skills) ? skills : (skills ? skills.split(',').map((s: string) => s.trim()).filter(Boolean) : []),
+      rating: 5.0,
+      completedGigs: 0,
+      balance: 1000.00, // Gift initial balance
+      availability: availability || "Mon-Wed-Fri, 1:00 PM - 5:00 PM",
+      bio: bio || "New student applicant eager to offer skill assistance."
+    };
+
+    users.push(newUser);
+    currentUserId = newUser.id; // Switch active context to newly registered user
+
+    activityLogs.unshift({
+      id: `log-${Date.now()}`,
+      timestamp: new Date().toISOString(),
+      category: "security",
+      description: `New profile registration initiated: ${name} (${role}) applied. Status set to pending registrar verification.`,
+      severity: "warning",
+      ipAddress: "192.168.10.88",
+      userAgent: "Mobile Ingress Client"
+    });
+
+    res.status(201).json({ success: true, user: newUser, allUsers: users });
+  });
+
   app.put("/api/users/:id", (req, res) => {
     const { id } = req.params;
     const updatedData = req.body;
